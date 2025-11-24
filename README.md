@@ -1,2 +1,2 @@
 # Todo List Project
-<img width="1919" height="597" alt="Screenshot 2025-11-24 012500" src="https://github.com/user-attachments/assets/2cf757c3-93c6-46bf-80fa-3fb148dfef36" />
+<img width="1919" height="480" alt="Screenshot 2025-11-24 012631" src="https://github.com/user-attachments/assets/57b2646d-52b5-41a6-add5-c1b456b4efee" />
