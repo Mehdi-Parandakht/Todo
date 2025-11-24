@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>چک لیست کار روزانه</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <!-- Persian Date & Datepicker -->
+  <link href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css" rel="stylesheet"/>
+  
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.0/dist/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/persian-date/dist/persian-date.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
+
+  <style>
+    body {
+      font-family: Vazir Medium;
+      background-color: var(--bg);
+      color: var(--text);
+      transition: background 0.3s, color 0.3s;
+      padding-top: 30px;
+    }
+
+    :root {
+      --bg: #f8f9fa;
+      --text: #212529;
+      --card: #ffffff;
+    }
+
+    body.dark {
+      --bg: #1e1e2f;
+      --text: #f8f9fa;
+      --card: #2b2b3d;
+    }
+
+    .todo-card {
+      background: var(--card);
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+
+    .done {
+      text-decoration: line-through;
+      color: gray;
+    }
+
+    .toggle-theme {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: #0d6efd;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 45px;
+      height: 45px;
+      font-size: 22px;
+    }
+  </style>
+</head>
+<body class="container">
+
+  <button id="themeBtn" class="toggle-theme">🌙</button>
+
+  <h2 class="text-center mb-4">📅 چک‌لیست روزانه</h2>
+
+  <div class="todo-card">
+    <div class="row g-2 align-items-center mb-3">
+      <div class="col-md-3">
+        <input type="text" id="taskDate" class="form-control" placeholder="تاریخ شمسی را انتخاب کن">
+      </div>
+      <div class="col-md-3">
+        <input id="taskTime" type="time" class="form-control" placeholder="ساعت انجام">
+      </div>
+      <div class="col-md-4">
+        <input id="taskInput" type="text" class="form-control" placeholder="کار جدید...">
+      </div>
+      <div class="col-md-2">
+        <button id="addBtn" class="btn btn-success w-100">➕ افزودن</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="taskList" class="todo-card"></div>
+
+  <div class="text-center">
+    <button id="clearBtn" class="btn btn-danger">🗑 پاک کردن همه‌ی کارها</button>
+  </div>
+
+  <script>
+    // عناصر اصلی
+    const taskInput = document.getElementById('taskInput');
+    const taskTime = document.getElementById('taskTime');
+    const addBtn = document.getElementById('addBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const taskList = document.getElementById('taskList');
+    const themeBtn = document.getElementById('themeBtn');
+    let todos = JSON.parse(localStorage.getItem('todos')) || [];
+
+    // تنظیم تم
+    function toggleTheme(){
+      document.body.classList.toggle('dark');
+      localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+      themeBtn.textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
+    }
+    themeBtn.addEventListener('click', toggleTheme);
+    if(localStorage.getItem('theme') === 'dark') toggleTheme();
+
+    // فعال‌سازی تقویم شمسی با Persian Datepicker
+    $(function() {
+      $("#taskDate").persianDatepicker({
+        format: 'YYYY/MM/DD',
+        initialValue: true,
+        observer: true,
+        autoClose: true,
+      });
+    });
+
+    // رسم لیست
+    function renderTasks(){
+      taskList.innerHTML = '';
+      if(todos.length === 0){
+        taskList.innerHTML = '<p class="text-center text-muted">🎉 هیچ کاری ثبت نشده</p>';
+        return;
+      }
+      todos.forEach((task, index)=>{
+        const div = document.createElement('div');
+        div.className = 'd-flex justify-content-between align-items-center border-bottom py-2';
+        div.innerHTML = `
+          <span class="${task.done ? 'done' : ''}">
+            📅 ${task.date} | 🕒 ${task.time || '--:--'} | ${task.text}
+          </span>
+          <div>
+            <button class="btn btn-sm btn-success me-1" onclick="toggleDone(${index})">✓</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteTask(${index})">✗</button>
+          </div>
+        `;
+        taskList.appendChild(div);
+      });
+      localStorage.setItem('todos', JSON.stringify(todos));
+    }
+
+    // افزودن کار
+    function addTask(){
+      const text = taskInput.value.trim();
+      const date = $("#taskDate").val();
+      const time = taskTime.value;
+      if(!text || !date) return alert("لطفاً متن و تاریخ را وارد کنید");
+      const task = { text, date, time, done:false };
+      todos.push(task);
+      taskInput.value = ''; taskTime.value = '';
+      renderTasks();
+      localStorage.setItem('todos', JSON.stringify(todos));
+      requestNotificationPermission(task);
+    }
+
+    // اتمام کار
+    function toggleDone(i){
+      todos[i].done = !todos[i].done;
+      renderTasks();
+    }
+
+    // حذف کار
+    function deleteTask(i){
+      if(confirm("آیا مطمئنی؟")){
+        todos.splice(i,1);
+        renderTasks();
+      }
+    }
+
+    // پاک‌کردن کل لیست
+    clearBtn.addEventListener('click', ()=>{
+      if(confirm("همه تسک‌ها حذف شوند؟")){
+        todos = [];
+        renderTasks();
+      }
+    });
+
+    // اعلان‌ها
+    function requestNotificationPermission(task=null){
+      if('Notification' in window){
+        Notification.requestPermission().then(perm=>{
+          if(perm==='granted' && task && task.time){
+            scheduleNotification(task);
+          }
+        });
+      }
+    }
+
+    function scheduleNotification(task){
+      const [hour, minute] = task.time.split(":");
+      const [jy,jm,jd] = task.date.split("/").map(x=>parseInt(x));
+      const g = persianDate.toGregorian(jy, jm, jd);
+      const notifyTime = new Date(g.gy, g.gm-1, g.gd, hour, minute);
+      const diff = notifyTime - new Date();
+      if(diff>0){
+        setTimeout(()=> new Notification(`⏰ یادآور: ${task.text}`), diff);
+      }
+    }
+
+    addBtn.addEventListener('click', addTask);
+    window.addEventListener('load', renderTasks);
+  </script>
+</body>
+</html>
